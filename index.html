@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoNexus - Inteligência Geográfica</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --error: #e74c3c; /* Cor para o aviso de erro */
+            --bg: #f0f2f5;
+            --shadow: 0 20px 40px rgba(0,0,0,0.1);
+            --transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Overlay de Conexão */
+        #loader-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            backdrop-filter: blur(5px);
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Card Principal */
+        .card {
+            background: white;
+            padding: 3rem;
+            border-radius: 30px;
+            box-shadow: var(--shadow);
+            max-width: 700px;
+            width: 100%;
+            text-align: center;
+            border-bottom: 12px solid var(--accent);
+        }
+
+        h1 { color: var(--primary); font-size: clamp(2rem, 8vw, 3rem); font-weight: 800; letter-spacing: -2px; margin-bottom: 5px; }
+        .tagline { color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; margin-bottom: 25px; display: block; }
+
+        /* Busca e Erro */
+        .search-container {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .search-group {
+            display: flex;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 20px;
+            border: 2px solid #eee;
+            transition: var(--transition);
+        }
+
+        .search-group:focus-within { border-color: var(--accent); }
+
+        input { flex: 1; padding: 12px 15px; border: none; background: transparent; font-size: 1.1rem; outline: none; }
+
+        .btn-nexus {
+            background: var(--accent); color: white; border: none; padding: 0 35px; border-radius: 12px;
+            cursor: pointer; font-weight: 700; transition: var(--transition);
+        }
+
+        .btn-nexus:hover { background: var(--primary); }
+
+        /* Estilo do Span de Erro */
+        #cep-error {
+            color: var(--error);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 8px;
+            margin-left: 15px;
+            display: none; /* Escondido por padrão */
+        }
+
+        /* Grid de Filtros */
+        .nexus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
+
+        .nexus-item {
+            padding: 15px; border: 2px solid #f0f0f0; border-radius: 15px; cursor: pointer;
+            transition: var(--transition); display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+
+        .nexus-item:hover { border-color: var(--accent); background: #f1fcf5; }
+        .nexus-item.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* ÁREA DE SCROLL */
+        #results-area {
+            display: none;
+            text-align: left;
+            margin-top: 25px;
+            border-top: 2px dashed #eee;
+            padding-top: 20px;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .scroll-container {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-top: 15px;
+        }
+
+        .scroll-container::-webkit-scrollbar { width: 6px; }
+        .scroll-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .scroll-container::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+        .location-card {
+            background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 12px;
+            margin-bottom: 10px; border-left: 5px solid var(--accent);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .dist { background: #f1f8f1; color: var(--accent); padding: 5px 10px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; }
+
+        footer { margin-top: 30px; font-size: 0.7rem; color: #bdc3c7; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; }
+
+        @media (max-width: 650px) {
+            .card { padding: 2rem 1.5rem; }
+            .nexus-grid { grid-template-columns: 1fr; }
+            .search-group { flex-direction: column; background: transparent; border: none; }
+            input { background: #f8f9fa; border: 2px solid #eee; border-radius: 12px; margin-bottom: 10px; }
+            .btn-nexus { padding: 15px; }
+        }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+        <h2>Sincronizando EcoNexus...</h2>
+        <p>Aguarde a conexão com os satélites de mapeamento.</p>
+    </div>
+
+    <div class="card">
+        <span class="tagline">Inteligência Urbana</span>
+        <h1>EcoNexus</h1>
+        <p style="color: #7f8c8d; margin-bottom: 25px;">Plataforma de geolocalização para logística reversa.</p>
+        
+        <div class="search-container">
+            <div class="search-group">
+                <input type="text" id="cep" placeholder="CEP (00000-000)">
+                <button class="btn-nexus" onclick="initSearch()">CONECTAR</button>
+            </div>
+            <span id="cep-error">⚠️ Formato de CEP inválido. Tente: 00000-000</span>
+        </div>
+
+        <div class="nexus-grid">
+            <div class="nexus-item active" id="btn-pilha" onclick="changeCategory('pilha', this)">
+                <span style="font-size: 1.8rem;">🔋</span>
+                <strong>Pilhas</strong>
+            </div>
+            <div class="nexus-item" onclick="changeCategory('oleo', this)">
+                <span style="font-size: 1.8rem;">🌻</span>
+                <strong>Óleo</strong>
+            </div>
+            <div class="nexus-item" onclick="changeCategory('lixo', this)">
+                <span style="font-size: 1.8rem;">💻</span>
+                <strong>E-Lixo</strong>
+            </div>
+        </div>
+
+        <div id="results-area">
+            <h4 style="color: var(--primary); font-size: 0.9rem;">📍 Nexos Encontrados na Região:</h4>
+            <div class="scroll-container" id="locations-list">
+                </div>
+        </div>
+
+        <footer>Project Extension &copy; 2026</footer>
+    </div>
+
+    <script>
+        const database = {
+            pilha: [
+                { n: "Farmácia DrogaRaia - Centro", d: "0.4 km" },
+                { n: "Supermercado Pão de Açúcar", d: "1.2 km" },
+                { n: "Posto Shell - Conveniência", d: "2.5 km" },
+                { n: "Condomínio Solar - PEV", d: "3.1 km" },
+                { n: "Centro Comercial Shopping", d: "5.8 km" },
+                { n: "Loja de Conveniência AM/PM", d: "6.2 km" },
+                { n: "Ponto de Coleta Rodoviária", d: "7.5 km" }
+            ],
+            oleo: [
+                { n: "Associação de Moradores", d: "1.8 km" },
+                { n: "Restaurante Sabor Natural", d: "2.4 km" },
+                { n: "Ponto Coleta Escola Municipal", d: "3.7 km" },
+                { n: "ONG Re-Óleo - Sede", d: "4.9 km" },
+                { n: "Cooperativa Recicla-Tudo", d: "6.2 km" },
+                { n: "Ponto Verde Praça Central", d: "7.0 km" },
+                { n: "Ecossistema Rural - Coleta", d: "10.1 km" }
+            ],
+            lixo: [
+                { n: "Universidade - Bloco TI", d: "2.2 km" },
+                { n: "Centro Logística Reversa", d: "4.8 km" },
+                { n: "E-Waste Solutions Hub", d: "7.1 km" },
+                { n: "Secretaria de Meio Ambiente", d: "9.5 km" },
+                { n: "Ecoponto Prefeitura Leste", d: "12.4 km" },
+                { n: "Digital Center - Coleta", d: "15.0 km" },
+                { n: "Descarte Tech Soluções", d: "18.2 km" }
+            ]
+        };
+
+        let currentCat = 'pilha';
+
+        function initSearch() {
+            const cep = document.getElementById('cep').value;
+            const errorSpan = document.getElementById('cep-error');
+            
+            // Validação simples de CEP
+            if (!/^[0-9]{5}-?[0-9]{3}$/.test(cep)) { 
+                errorSpan.style.display = 'block'; // Mostra o span de erro
+                return; 
+            }
+
+            errorSpan.style.display = 'none'; // Esconde o erro se estiver tudo certo
+            document.getElementById('loader-overlay').style.display = 'flex';
+            
+            setTimeout(() => {
+                document.getElementById('loader-overlay').style.display = 'none';
+                render();
+                document.getElementById('results-area').style.display = 'block';
+            }, 1200);
+        }
+
+        function changeCategory(type, el) {
+            document.querySelectorAll('.nexus-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            currentCat = type;
+            if(document.getElementById('results-area').style.display === 'block') render();
+        }
+
+        function render() {
+            const list = document.getElementById('locations-list');
+            list.innerHTML = database[currentCat].map(loc => `
+                <div class="location-card">
+                    <div><strong>${loc.n}</strong><br><small style="color:#aaa">Ponto de Entrega Verificado</small></div>
+                    <span class="dist">${loc.d}</span>
+                </div>
+            `).join('');
+            list.scrollTop = 0;
+        }
+    </script>
+</body>
+</html>
