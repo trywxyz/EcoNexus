@@ -35,6 +35,7 @@ In my local community, a significant amount of **special waste** (electronics, b
 This project was developed for educational purposes as part of the University Extension requirements.
 
 ---
-<img width="1872" height="1001" alt="image" src="https://github.com/user-attachments/assets/dd9b1c45-009a-408d-9196-e3073bd30425" />
+<img width="1849" height="984" alt="image" src="https://github.com/user-attachments/assets/be47da55-e543-4ad6-b32e-0754e46aef0b" />
+
 
 **Developed by Try - 2026**
